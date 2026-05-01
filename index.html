@@ -1,0 +1,420 @@
+import { useState } from "react";
+
+const alerts = [
+  {
+    id: 1,
+    island: "O\u02bbahu",
+    area: "Ewa Beach",
+    type: "Phishing Text",
+    severity: "high",
+    title: "Fake Utility Disconnection Text",
+    description: "Residents receiving texts claiming their power will be cut unless they pay immediately via gift card. Do NOT click any links or call back unknown numbers.",
+    time: "2 hours ago",
+    reports: 14,
+  },
+  {
+    id: 2,
+    island: "Maui",
+    area: "Kahului",
+    type: "Email Scam",
+    severity: "medium",
+    title: "Bank Credential Phishing Email",
+    description: "Spoofed bank email asking users to verify accounts. Sender domain is not legitimate \u2014 look for misspellings in the URL before clicking anything.",
+    time: "5 hours ago",
+    reports: 7,
+  },
+  {
+    id: 3,
+    island: "Hawai\u02bbi Island",
+    area: "Hilo",
+    type: "Phone Scam",
+    severity: "medium",
+    title: "IRS Impersonation Calls",
+    description: "Callers claiming to be IRS agents threatening arrest unless payment made via wire transfer or gift card. Hang up immediately \u2014 the IRS does not call demanding immediate payment.",
+    time: "1 day ago",
+    reports: 22,
+  },
+  {
+    id: 4,
+    island: "Kaua\u02bbi",
+    area: "L\u012bhu\u02bbe",
+    type: "Social Media Scam",
+    severity: "low",
+    title: "Fake Rental Listings on Facebook",
+    description: "Multiple fake vacation rental listings circulating. Scammers asking for deposits via Zelle or Venmo. Verify listings directly with property owners before sending any money.",
+    time: "2 days ago",
+    reports: 5,
+  },
+];
+
+const guides = [
+  {
+    id: 1, icon: "\uD83D\uDD10", theme: "T2", title: "MFA: Your Digital Door Lock", level: "Beginner",
+    summary: "Multi-factor authentication adds a second lock to your accounts. Even if someone steals your password, they cannot get in without your phone.",
+    steps: ["Go to your account Settings \u2192 Security", "Look for \u2018Two-Factor\u2019 or \u2018Multi-Factor Authentication\u2019", "Choose \u2018Authenticator App\u2019 over SMS when possible", "Download Google Authenticator or Authy", "Scan the QR code and save your backup codes safely"],
+  },
+  {
+    id: 2, icon: "\uD83D\uDEE1\uFE0F", theme: "T3", title: "Stop the Password Domino Effect", level: "Beginner",
+    summary: "Using the same password everywhere means one breach exposes everything. A password manager fixes this automatically.",
+    steps: ["Download Bitwarden (free) or 1Password", "Create one strong master password \u2014 use a passphrase", "Let the manager generate unique passwords for every site", "Enable MFA on your password manager too", "Never share passwords via text or email"],
+  },
+  {
+    id: 3, icon: "\uD83D\uDCE1", theme: "T4", title: "Secure Your Home Network", level: "Intermediate",
+    summary: "Your home WiFi is the front door to every device you own. Most people never change the factory settings \u2014 scammers know this.",
+    steps: ["Log into your router (usually 192.168.1.1)", "Change the default admin username and password", "Rename your WiFi \u2014 remove your name or address", "Enable WPA3 or WPA2 encryption", "Create a separate Guest network for visitors and smart devices"],
+  },
+  {
+    id: 4, icon: "\uD83C\uDFA3", theme: "T1", title: "Spotting a Phishing Message", level: "Beginner",
+    summary: "Phishing is the #1 way hackers get in. They fake emails and texts from trusted sources to steal your credentials.",
+    steps: ["Check the sender\u2019s actual email \u2014 not just the display name", "Hover over links before clicking to see the real URL", "Be suspicious of urgency: \u2018Act now or lose access\u2019", "Never enter passwords on a page reached from an email", "When in doubt, go directly to the website by typing it yourself"],
+  },
+];
+
+const resources = [
+  { name: "FBI Internet Crime Complaint Center", desc: "Report online fraud, scams, and cybercrime to federal authorities.", url: "https://ic3.gov", tag: "Federal", island: "All Islands" },
+  { name: "FTC Report Fraud", desc: "File complaints about identity theft, scams, and unwanted calls.", url: "https://reportfraud.ftc.gov", tag: "Federal", island: "All Islands" },
+  { name: "Hawaii Office of Consumer Protection", desc: "Report deceptive practices and consumer fraud in Hawai\u02bbi.", url: "https://cca.hawaii.gov/ocp", tag: "State", island: "All Islands" },
+  { name: "CyberHawaii", desc: "Hawai\u02bbi\u2019s statewide cybersecurity initiative connecting public and private sectors.", url: "https://cyberhawaii.org", tag: "Local", island: "All Islands" },
+  { name: "Hawai\u02bbi Public Libraries", desc: "Free digital literacy classes and internet access across all islands.", url: "https://librarieshawaii.org", tag: "Local", island: "All Islands" },
+  { name: "HACBED", desc: "Hawai\u02bbi Alliance for Community-Based Economic Development \u2014 small business support.", url: "https://hacbed.org", tag: "Nonprofit", island: "O\u02bbahu" },
+];
+
+const sevConfig = {
+  high:   { color: "#b91c1c", bg: "#fef2f2", border: "#fca5a5", dot: "#ef4444", label: "HIGH" },
+  medium: { color: "#b45309", bg: "#fffbeb", border: "#fcd34d", dot: "#f59e0b", label: "MED"  },
+  low:    { color: "#166534", bg: "#f0fdf4", border: "#86efac", dot: "#22c55e", label: "LOW"  },
+};
+
+const tagColors = {
+  Federal:  { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
+  State:    { bg: "#fdf4ff", color: "#7e22ce", border: "#e9d5ff" },
+  Local:    { bg: "#f0fdf4", color: "#166534", border: "#86efac" },
+  Nonprofit:{ bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" },
+};
+
+const islands = ["All Islands","O\u02bbahu","Maui","Hawai\u02bbi Island","Kaua\u02bbi","Moloka\u02bbi","L\u0101na\u02bbi"];
+
+export default function App() {
+  const [activeTab, setActiveTab]           = useState("alerts");
+  const [selectedIsland, setSelectedIsland] = useState("All Islands");
+  const [expandedGuide, setExpandedGuide]   = useState(null);
+  const [expandedAlert, setExpandedAlert]   = useState(null);
+  const [showReport, setShowReport]         = useState(false);
+  const [submitted, setSubmitted]           = useState(false);
+  const [form, setForm] = useState({ island:"", type:"", title:"", description:"" });
+
+  const filteredAlerts = selectedIsland === "All Islands"
+    ? alerts
+    : alerts.filter(a => a.island === selectedIsland);
+
+  const handleSubmit = () => {
+    if (form.island && form.type && form.title) {
+      setSubmitted(true);
+      setTimeout(() => {
+        setShowReport(false);
+        setSubmitted(false);
+        setForm({ island:"", type:"", title:"", description:"" });
+      }, 2800);
+    }
+  };
+
+  const inputStyle = {
+    width: "100%", padding: "9px 12px", border: "2px solid #e0dbd2",
+    borderRadius: 6, fontFamily: "'Georgia',serif", fontSize: 13,
+    color: "#0d1f0d", background: "#fff", boxSizing: "border-box",
+  };
+
+  return (
+    <div style={{ fontFamily: "'Georgia','Times New Roman',serif", background: "#f7f4ef", minHeight: "100vh", color: "#111" }}>
+
+      {/* HEADER */}
+      <header style={{ background: "#0d1f0d", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 24px rgba(0,0,0,0.5)" }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 66 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 30 }}>🦉</span>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#e8f5e8", letterSpacing: "-0.3px" }}>PueoWatch</div>
+              <div style={{ fontSize: 10, color: "#4ade80", letterSpacing: "2.5px", textTransform: "uppercase", fontFamily: "monospace" }}>Hawai\u02bbi</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(74,222,128,0.1)", border:"1px solid rgba(74,222,128,0.25)", borderRadius:20, padding:"4px 12px" }}>
+              <div style={{ width:7, height:7, borderRadius:"50%", background:"#4ade80", boxShadow:"0 0 6px #4ade80" }} />
+              <span style={{ fontSize:11, color:"#4ade80", fontFamily:"monospace", letterSpacing:"1px" }}>LIVE</span>
+            </div>
+            <button
+              onClick={() => setShowReport(true)}
+              style={{ background:"#4ade80", color:"#0d1f0d", border:"none", borderRadius:6, padding:"9px 18px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"'Georgia',serif" }}
+            >
+              + Report Scam
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <div style={{ background:"linear-gradient(160deg,#0d1f0d 0%,#163016 55%,#0d1f0d 100%)", padding:"56px 24px 48px", textAlign:"center", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(ellipse at 25% 60%,rgba(74,222,128,0.09) 0%,transparent 55%),radial-gradient(ellipse at 75% 40%,rgba(74,222,128,0.06) 0%,transparent 55%)" }} />
+        <div style={{ position:"relative", maxWidth:660, margin:"0 auto" }}>
+          <div style={{ display:"inline-block", background:"rgba(74,222,128,0.12)", border:"1px solid rgba(74,222,128,0.3)", borderRadius:20, padding:"4px 16px", marginBottom:20 }}>
+            <span style={{ fontSize:11, color:"#4ade80", fontFamily:"monospace", letterSpacing:"2px", textTransform:"uppercase" }}>Free \u00b7 Community-Driven \u00b7 No Tech Background Needed</span>
+          </div>
+          <h1 style={{ fontSize:"clamp(26px,5vw,42px)", fontWeight:700, color:"#e8f5e8", margin:"0 0 14px", lineHeight:1.2, letterSpacing:"-0.5px" }}>
+            Digital Safety for the<br /><span style={{ color:"#4ade80" }}>Hawaiian \u02bbOhana</span>
+          </h1>
+          <p style={{ fontSize:15, color:"#86efac", lineHeight:1.75, margin:"0 0 30px", fontStyle:"italic" }}>
+            Protecting our community from cyber threats \u2014 with aloha, in plain language, for everyone.
+          </p>
+          <div style={{ display:"flex", gap:28, justifyContent:"center", flexWrap:"wrap" }}>
+            {[
+              { n: alerts.reduce((a,b)=>a+b.reports,0), l:"Community Reports" },
+              { n: guides.length, l:"Safety Guides" },
+              { n: resources.length, l:"Local Resources" },
+            ].map(s => (
+              <div key={s.l} style={{ textAlign:"center" }}>
+                <div style={{ fontSize:30, fontWeight:700, color:"#4ade80", fontFamily:"monospace" }}>{s.n}</div>
+                <div style={{ fontSize:11, color:"#86efac", letterSpacing:"0.5px" }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div style={{ background:"#fff", borderBottom:"2px solid #e0dbd2", position:"sticky", top:66, zIndex:90 }}>
+        <div style={{ maxWidth:1080, margin:"0 auto", padding:"0 24px", display:"flex" }}>
+          {[
+            { id:"alerts",    label:"\uD83D\uDEA8 Scam Alerts"   },
+            { id:"guides",    label:"\uD83D\uDCD6 Safety Guides"  },
+            { id:"resources", label:"\uD83D\uDCCD Get Help"       },
+          ].map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              padding:"15px 22px", border:"none",
+              borderBottom: activeTab===t.id ? "3px solid #0d1f0d" : "3px solid transparent",
+              background:"none", cursor:"pointer", fontFamily:"'Georgia',serif", fontSize:14,
+              fontWeight: activeTab===t.id ? 700 : 400,
+              color: activeTab===t.id ? "#0d1f0d" : "#6b7280",
+              transition:"all 0.18s", marginBottom:-2,
+            }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* MAIN */}
+      <main style={{ maxWidth:1080, margin:"0 auto", padding:"36px 24px 72px" }}>
+
+        {/* ── ALERTS ── */}
+        {activeTab === "alerts" && (
+          <div>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24, flexWrap:"wrap", gap:12 }}>
+              <div>
+                <h2 style={{ fontFamily:"'Georgia',serif", fontSize:21, fontWeight:700, margin:"0 0 3px", color:"#0d1f0d" }}>Community Scam Alerts</h2>
+                <p style={{ fontSize:12, color:"#6b7280", margin:0 }}>Reported by Hawai\u02bbi residents \u00b7 moderated by CyberGuru volunteers</p>
+              </div>
+              <select value={selectedIsland} onChange={e=>setSelectedIsland(e.target.value)}
+                style={{ padding:"9px 14px", border:"2px solid #0d1f0d", borderRadius:6, fontFamily:"'Georgia',serif", fontSize:13, background:"#fff", cursor:"pointer", fontWeight:600, color:"#0d1f0d" }}>
+                {islands.map(i=><option key={i}>{i}</option>)}
+              </select>
+            </div>
+
+            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              {filteredAlerts.map(alert => {
+                const s = sevConfig[alert.severity];
+                const open = expandedAlert === alert.id;
+                return (
+                  <div key={alert.id}
+                    onClick={() => setExpandedAlert(open ? null : alert.id)}
+                    style={{ background:"#fff", border:`1px solid ${open?"#0d1f0d":"#e0dbd2"}`, borderLeft:`5px solid ${s.color}`, borderRadius:10, padding:"20px 24px", cursor:"pointer", transition:"box-shadow 0.2s,border-color 0.2s", boxShadow: open?"0 6px 28px rgba(0,0,0,0.1)":"0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", gap:12, alignItems:"flex-start" }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ display:"flex", gap:7, marginBottom:10, flexWrap:"wrap", alignItems:"center" }}>
+                          <span style={{ display:"flex", alignItems:"center", gap:5, background:s.bg, color:s.color, border:`1px solid ${s.border}`, borderRadius:4, padding:"2px 8px", fontSize:11, fontWeight:700, fontFamily:"monospace", letterSpacing:"1px" }}>
+                            <span style={{ width:6, height:6, borderRadius:"50%", background:s.dot, display:"inline-block" }} />{s.label}
+                          </span>
+                          <span style={{ background:"#f3f4f6", color:"#374151", borderRadius:4, padding:"2px 8px", fontSize:11, fontFamily:"monospace" }}>{alert.type}</span>
+                          <span style={{ background:"#0d1f0d", color:"#4ade80", borderRadius:4, padding:"2px 8px", fontSize:11, fontFamily:"monospace" }}>📍 {alert.island} — {alert.area}</span>
+                        </div>
+                        <div style={{ fontSize:15, fontWeight:700, color:"#0d1f0d", marginBottom:4, fontFamily:"'Georgia',serif" }}>{alert.title}</div>
+                        {open && (
+                          <div style={{ marginTop:12, paddingTop:12, borderTop:"1px solid #f3f4f6" }}>
+                            <p style={{ fontSize:13, color:"#374151", lineHeight:1.75, margin:"0 0 14px" }}>{alert.description}</p>
+                            <div style={{ padding:"12px 16px", background:"#f0fdf4", border:"1px solid #86efac", borderRadius:8 }}>
+                              <div style={{ fontSize:11, fontWeight:700, color:"#166534", marginBottom:4, fontFamily:"monospace", letterSpacing:"1px" }}>\u2713 WHAT TO DO</div>
+                              <div style={{ fontSize:13, color:"#166534", lineHeight:1.6 }}>Do not click links or call back unknown numbers. Report to IC3.gov and the FTC. Share with your \u02bbohana.</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ textAlign:"right", flexShrink:0 }}>
+                        <div style={{ fontSize:11, color:"#9ca3af", fontFamily:"monospace", marginBottom:5 }}>{alert.time}</div>
+                        <div style={{ fontSize:12, fontWeight:700, color:"#374151" }}>{alert.reports} reports</div>
+                        <div style={{ fontSize:11, color:"#9ca3af", marginTop:6 }}>{open?"▲":"▼"}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredAlerts.length === 0 && (
+                <div style={{ textAlign:"center", padding:"60px 0", color:"#6b7280" }}>
+                  <div style={{ fontSize:42, marginBottom:12 }}>🦉</div>
+                  <div style={{ fontFamily:"'Georgia',serif", fontSize:17, fontWeight:600, marginBottom:6 }}>No alerts for this island</div>
+                  <div style={{ fontSize:13 }}>Be the first to report a scam in your community.</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── GUIDES ── */}
+        {activeTab === "guides" && (
+          <div>
+            <div style={{ marginBottom:26 }}>
+              <h2 style={{ fontFamily:"'Georgia',serif", fontSize:21, fontWeight:700, margin:"0 0 3px", color:"#0d1f0d" }}>Digital Safety Guides</h2>
+              <p style={{ fontSize:12, color:"#6b7280", margin:0 }}>Plain-language guides for every Hawai\u02bbi resident \u2014 no tech background needed</p>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))", gap:18 }}>
+              {guides.map(g => {
+                const open = expandedGuide === g.id;
+                return (
+                  <div key={g.id} style={{ background:"#fff", border:`1px solid ${open?"#0d1f0d":"#e0dbd2"}`, borderRadius:12, overflow:"hidden", transition:"all 0.2s", boxShadow: open?"0 8px 32px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ background: open?"#0d1f0d":"#fff", padding:"20px 22px", transition:"background 0.2s", borderBottom:`1px solid ${open?"#1a3d1a":"#f3f4f6"}` }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                        <span style={{ fontSize:30 }}>{g.icon}</span>
+                        <span style={{ background: open?"rgba(74,222,128,0.15)":"#f3f4f6", color: open?"#4ade80":"#6b7280", borderRadius:4, padding:"3px 8px", fontSize:10, fontFamily:"monospace", fontWeight:700, letterSpacing:"1px" }}>{g.level.toUpperCase()}</span>
+                      </div>
+                      <div style={{ fontFamily:"'Georgia',serif", fontSize:15, fontWeight:700, marginTop:12, color: open?"#e8f5e8":"#0d1f0d", lineHeight:1.3 }}>{g.title}</div>
+                      <div style={{ fontSize:11, color: open?"#4ade80":"#9ca3af", marginTop:4, fontFamily:"monospace" }}>{g.theme}</div>
+                    </div>
+                    <div style={{ padding:"16px 22px" }}>
+                      <p style={{ fontSize:13, color:"#4b5563", lineHeight:1.7, margin:"0 0 14px" }}>{g.summary}</p>
+                      {open && (
+                        <div style={{ marginBottom:14 }}>
+                          <div style={{ fontSize:10, fontWeight:700, color:"#0d1f0d", marginBottom:10, fontFamily:"monospace", letterSpacing:"2px", textTransform:"uppercase" }}>Step-by-Step</div>
+                          {g.steps.map((step,i) => (
+                            <div key={i} style={{ display:"flex", gap:10, marginBottom:8, alignItems:"flex-start" }}>
+                              <div style={{ width:20, height:20, borderRadius:"50%", background:"#0d1f0d", color:"#4ade80", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, flexShrink:0, fontFamily:"monospace" }}>{i+1}</div>
+                              <div style={{ fontSize:12, color:"#374151", lineHeight:1.65, paddingTop:2 }}>{step}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={() => setExpandedGuide(open ? null : g.id)}
+                        style={{ background: open?"#0d1f0d":"transparent", color: open?"#4ade80":"#0d1f0d", border:"2px solid #0d1f0d", borderRadius:6, padding:"9px 16px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'Georgia',serif", width:"100%", transition:"all 0.18s" }}>
+                        {open ? "Close \u2191" : "Read Guide \u2192"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── RESOURCES ── */}
+        {activeTab === "resources" && (
+          <div>
+            <div style={{ marginBottom:26 }}>
+              <h2 style={{ fontFamily:"'Georgia',serif", fontSize:21, fontWeight:700, margin:"0 0 3px", color:"#0d1f0d" }}>Get Help</h2>
+              <p style={{ fontSize:12, color:"#6b7280", margin:0 }}>Trusted organizations and reporting tools for Hawai\u02bbi residents</p>
+            </div>
+
+            <div style={{ background:"#0d1f0d", borderRadius:14, padding:"26px 30px", marginBottom:28, display:"flex", gap:20, alignItems:"center", flexWrap:"wrap" }}>
+              <span style={{ fontSize:38 }}>🦉</span>
+              <div style={{ flex:1, minWidth:200 }}>
+                <div style={{ fontFamily:"'Georgia',serif", fontSize:17, fontWeight:700, color:"#e8f5e8", marginBottom:6 }}>Need personal cybersecurity help?</div>
+                <div style={{ fontSize:12, color:"#86efac", lineHeight:1.7 }}>Hawaiian Islands CyberGuru Academy offers free digital safety classes. Small businesses can connect with Islands CyberSecure for professional consultation.</div>
+              </div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                <a href="https://cyberguruacademy.org" target="_blank" rel="noopener noreferrer" style={{ background:"#4ade80", color:"#0d1f0d", border:"none", borderRadius:6, padding:"10px 18px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"'Georgia',serif", textDecoration:"none" }}>Free Classes \u2192</a>
+                <a href="https://islandcybersecure.com" target="_blank" rel="noopener noreferrer" style={{ background:"transparent", color:"#4ade80", border:"2px solid #4ade80", borderRadius:6, padding:"10px 18px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"'Georgia',serif", textDecoration:"none" }}>SMB Consult \u2192</a>
+              </div>
+            </div>
+
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              {resources.map((res,i) => {
+                const tc = tagColors[res.tag] || tagColors.Local;
+                return (
+                  <div key={i} style={{ background:"#fff", border:"1px solid #e0dbd2", borderRadius:10, padding:"18px 22px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:16, flexWrap:"wrap", boxShadow:"0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ flex:1, minWidth:180 }}>
+                      <div style={{ display:"flex", gap:7, marginBottom:7, flexWrap:"wrap", alignItems:"center" }}>
+                        <span style={{ background:tc.bg, color:tc.color, border:`1px solid ${tc.border}`, borderRadius:4, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:"monospace", letterSpacing:"0.5px" }}>{res.tag}</span>
+                        <span style={{ fontSize:10, color:"#9ca3af", fontFamily:"monospace" }}>📍 {res.island}</span>
+                      </div>
+                      <div style={{ fontFamily:"'Georgia',serif", fontWeight:700, fontSize:14, color:"#0d1f0d", marginBottom:3 }}>{res.name}</div>
+                      <div style={{ fontSize:12, color:"#6b7280", lineHeight:1.6 }}>{res.desc}</div>
+                    </div>
+                    <a href={res.url} target="_blank" rel="noopener noreferrer"
+                      style={{ background:"#0d1f0d", color:"#4ade80", border:"none", borderRadius:6, padding:"9px 16px", fontWeight:700, fontSize:12, cursor:"pointer", fontFamily:"monospace", textDecoration:"none", whiteSpace:"nowrap" }}>
+                      Visit \u2192
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* REPORT MODAL */}
+      {showReport && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+          <div style={{ background:"#fff", borderRadius:16, padding:"32px 30px", maxWidth:460, width:"100%", boxShadow:"0 30px 70px rgba(0,0,0,0.35)" }}>
+            {submitted ? (
+              <div style={{ textAlign:"center", padding:"24px 0" }}>
+                <div style={{ fontSize:52, marginBottom:14 }}>🦉</div>
+                <div style={{ fontFamily:"'Georgia',serif", fontSize:21, fontWeight:700, color:"#0d1f0d", marginBottom:8 }}>Mahalo nui loa!</div>
+                <div style={{ fontSize:13, color:"#6b7280", lineHeight:1.75 }}>Your report has been submitted. Our CyberGuru team will review it shortly. Your \u02bbohana is safer because of you.</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:22 }}>
+                  <div>
+                    <div style={{ fontFamily:"'Georgia',serif", fontSize:19, fontWeight:700, color:"#0d1f0d" }}>Report a Scam</div>
+                    <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>Help protect your community</div>
+                  </div>
+                  <button onClick={() => setShowReport(false)} style={{ background:"#f3f4f6", border:"none", borderRadius:"50%", width:30, height:30, cursor:"pointer", fontSize:15, color:"#374151" }}>✕</button>
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:13 }}>
+                  {[
+                    { label:"Island",      field:"island",      type:"select",   opts: islands.filter(i=>i!=="All Islands") },
+                    { label:"Scam Type",   field:"type",        type:"select",   opts: ["Phishing Text","Email Scam","Phone Scam","Social Media Scam","Website Fraud","Other"] },
+                    { label:"Brief Title", field:"title",       type:"text",     ph:"e.g. Fake utility shutoff text" },
+                    { label:"Description", field:"description", type:"textarea", ph:"What happened? What did the message say?" },
+                  ].map(f => (
+                    <div key={f.field}>
+                      <label style={{ fontSize:11, fontWeight:700, color:"#0d1f0d", display:"block", marginBottom:5, fontFamily:"monospace", letterSpacing:"1px", textTransform:"uppercase" }}>{f.label}</label>
+                      {f.type==="select" ? (
+                        <select value={form[f.field]} onChange={e=>setForm({...form,[f.field]:e.target.value})} style={inputStyle}>
+                          <option value="">Select…</option>
+                          {f.opts.map(o=><option key={o}>{o}</option>)}
+                        </select>
+                      ) : f.type==="textarea" ? (
+                        <textarea value={form[f.field]} onChange={e=>setForm({...form,[f.field]:e.target.value})} placeholder={f.ph} rows={3} style={{ ...inputStyle, resize:"vertical" }} />
+                      ) : (
+                        <input value={form[f.field]} onChange={e=>setForm({...form,[f.field]:e.target.value})} placeholder={f.ph} style={inputStyle} />
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={handleSubmit}
+                    style={{ background:"#0d1f0d", color:"#4ade80", border:"none", borderRadius:8, padding:"13px", fontWeight:700, fontSize:14, cursor:"pointer", fontFamily:"'Georgia',serif", marginTop:4 }}>
+                    Submit Report \u2192
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER */}
+      <footer style={{ background:"#0d1f0d", padding:"30px 24px", textAlign:"center" }}>
+        <div style={{ fontSize:26, marginBottom:8 }}>🦉</div>
+        <div style={{ fontFamily:"'Georgia',serif", fontSize:13, color:"#e8f5e8", fontWeight:600, marginBottom:3 }}>PueoWatch Hawai\u02bbi</div>
+        <div style={{ fontSize:11, color:"#4a6a4a", marginBottom:10 }}>A free community service by Hawaiian Islands CyberGuru Academy</div>
+        <div style={{ fontSize:10, color:"#4a6a4a", fontFamily:"monospace" }}>\u00a9 2025 Hawaiian Islands CyberGuru Academy. All Rights Reserved.</div>
+      </footer>
+    </div>
+  );
+}
